@@ -1,7 +1,6 @@
 #pragma once
 #include <QOpenGLWidget>
 #include <QOpenGLFunctions_4_5_Compatibility>
-#include <nifo/core/ogl/batch.h>
 #include <nifo/core/ogl/camera.h>
 #include <nifo/core/ogl/frame_buffer.h>
 #include <nifo/core/ogl/model.h>

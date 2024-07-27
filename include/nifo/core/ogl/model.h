@@ -1,6 +1,6 @@
 #pragma once
 #include <filesystem>
-#include "batch.h"
+#include "mesh.h"
 #include "../utils/loop.h"
 
 namespace nifo {
