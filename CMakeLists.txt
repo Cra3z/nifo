@@ -12,8 +12,6 @@ add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/utf-8>")
 add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/permissive->")
 add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/Zc:preprocessor>")
 
-list(APPEND CMAKE_PREFIX_PATH "$ENV{Qt6_DIR}")
-
 find_package(spdlog REQUIRED)
 find_package(glm REQUIRED)
 find_package(assimp REQUIRED)
