@@ -85,6 +85,13 @@ namespace nifo::ui {
 		pimpl(std::make_unique<impl>(*this))
 	{
 		setMouseTracking(true);
+		addAction("delete selected node", QKeySequence::Delete, &hierarchy_, &hierarchy::delete_current_node);
+		setContextMenuPolicy(Qt::CustomContextMenu);
+		auto menu = new QMenu{};
+		menu->addAction(QIcon{":/images/delete-dark.svg"}, "删除节点", &hierarchy_, &hierarchy::delete_current_node);
+		connect(this, &QWidget::customContextMenuRequested, menu, [this, menu] (const QPoint& pos) {
+			menu->popup(mapToGlobal(pos));
+		});
 		nifo_expect(hierarchy_.associated_arena_ == nullptr); // precondition
 		hierarchy_.associated_arena_ = this;
 		detail::caller = &(pimpl->gl_function_caller);
@@ -108,10 +115,10 @@ namespace nifo::ui {
 		pimpl->load_default_assets();
 		pimpl->gbuffer = std::make_unique<frame_buffer>(glm::ivec2{fbo_width, fbo_height}, std::move(color_buffers), use_depth_stencil_common_attachment, std::move(depth_and_stencil));
 		pimpl->gbuffer->enable(capability::depth_test).enable_draw_into({GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2});
+		pimpl->postprocessing = std::make_unique<postprocessing_region>(pimpl->materials.at("#merge"));
 		scene& scene_ = hierarchy_.get().scene_;
 		scene_.editor_camera.set_aspect_ratio(float(fbo_width) / float(fbo_height));
 		if (scene_.grid == nullptr) scene_.grid = std::make_unique<builtin::grid>(pimpl->materials.at("#grid"), 5.f);
-		pimpl->postprocessing = std::make_unique<postprocessing_region>(pimpl->materials.at("#merge"));
 		nifo_gl_invoke(glEnable, GL_DEBUG_OUTPUT);
 		nifo_gl_invoke(glEnable, GL_DEBUG_OUTPUT_SYNCHRONOUS);
 		nifo_gl_invoke(glDebugMessageCallback, detail::ogl_error_message, nullptr);

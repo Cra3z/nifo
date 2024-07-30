@@ -50,7 +50,7 @@ public:
         sizePolicy.setVerticalStretch(0);
         sizePolicy.setHeightForWidth(label_x_pos->sizePolicy().hasHeightForWidth());
         label_x_pos->setSizePolicy(sizePolicy);
-        label_x_pos->setMinimumSize(QSize(0, 32));
+        label_x_pos->setMinimumSize(QSize(36, 32));
         label_x_pos->setMaximumSize(QSize(16777215, 35));
         label_x_pos->setAlignment(Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter);
 
