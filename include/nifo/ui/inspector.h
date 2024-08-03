@@ -1,7 +1,6 @@
 #pragma once
 #include <QScrollArea>
-#include "panels/name_panel.h"
-#include "panels/transform_panel.h"
+#include "panels/common.h"
 
 namespace nifo::ui {
 	class inspector final : public QWidget {
@@ -17,7 +16,7 @@ namespace nifo::ui {
 
 	signals:
 
-		auto new_value_inputed_in_some_panel() ->void;
+		auto new_value_inputed_in_some_panel(panel_base::next_to_do) ->void;
 
 	public slots:
 

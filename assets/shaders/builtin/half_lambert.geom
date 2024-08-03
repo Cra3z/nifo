@@ -10,6 +10,7 @@ in vs_out_blk {
 } vs_out[];
 
 out gs_out_blk {
+    vec3 position;
     vec3 normal;
     vec2 uv;
 } gs_out;
@@ -25,6 +26,7 @@ void main() {
     (vs_out[2].uv.x - vs_out[1].uv.x) * (vs_out[0].uv.y - vs_out[1].uv.y);
     tangent = normalize(tangent);
     for (int i = 0; i < 3; ++i) {
+        gs_out.position = vs_out[i].position;
         gs_out.normal = vs_out[i].normal;
         gs_out.uv = vs_out[i].uv;
         gl_Position = gl_in[i].gl_Position;

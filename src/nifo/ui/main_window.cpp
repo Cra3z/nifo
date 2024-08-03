@@ -84,7 +84,18 @@ namespace nifo::ui {
 		setCentralWidget(splitter_);
 		setStatusBar(status_bar_);
 
-		connect(inspector_, &inspector::new_value_inputed_in_some_panel, arena_, static_cast<void(arena::*)()>(&arena::repaint));
+		connect(inspector_, &inspector::new_value_inputed_in_some_panel, [this] (panel_base::next_to_do next_to_do) {
+			switch (next_to_do) {
+			case panel_base::next_to_do::refrush_view:
+				hierarchy_->refrush_current();
+				break;
+			case panel_base::next_to_do::repaint_scene:
+				arena_->repaint();
+				break;
+			default:
+				break;
+			}
+		});
 		connect(hierarchy_, &hierarchy::current_changed, inspector_, &inspector::bind);
 		connect(hierarchy_, &hierarchy::no_selected, inspector_, &inspector::hide_panels);
 		connect(timer_, &QTimer::timeout, [this] {
@@ -92,20 +103,19 @@ namespace nifo::ui {
 				progress_bar_->setValue(std::min(progress_bar_->value() + 33, 99));
 			}
 		});
-		connect(hierarchy_, &hierarchy::node_importing_started, [this] (const QString& message) {
+		connect(hierarchy_, &hierarchy::model_importing_started, [this] (const QString& message) {
 			status_bar_->showMessage("导入模型" + message + "中...");
 			progress_bar_->show();
 			progress_bar_->setValue(0);
 			timer_->start();
 		});
-		connect(hierarchy_, &hierarchy::new_node_created, [this] {
+		connect(hierarchy_, &hierarchy::model_importing_done, [this] {
 			timer_->stop();
 			progress_bar_->setValue(100);
 			progress_bar_->hide();
 			status_bar_->clearMessage();
 			arena_->repaint();
 		});
-
 		auto file_menu = menu_bar_->addMenu("文件");
 		file_menu->addMenu(QIcon{":/images/new.svg"}, "新建项目");
 		file_menu->addAction(QIcon{":/images/folder-dark.svg"}, "打开项目");

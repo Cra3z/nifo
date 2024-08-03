@@ -87,11 +87,6 @@ foreach(T IN ITEMS nifo_core nifo_gui nifo)
     )
 endforeach()
 
-install(
-    TARGETS nifo
-    RUNTIME DESTINATION "nifo"
-)
-
 set(ASSETS_DIR "assets" CACHE PATH "the directory name of assets")
 
 foreach(DIR IN ITEMS models shaders textures)
@@ -99,12 +94,7 @@ foreach(DIR IN ITEMS models shaders textures)
         COPY ${CMAKE_SOURCE_DIR}/assets/${DIR}
         DESTINATION ${CMAKE_BINARY_DIR}/${ASSETS_DIR}
     )
-    install(
-        DIRECTORY ${CMAKE_SOURCE_DIR}/assets/${DIR}
-        DESTINATION nifo/${ASSETS_DIR}
-    )
 endforeach()
-
 
 set(ASSETS_DIR "R\"(${ASSETS_DIR}/)\"")
 
@@ -139,6 +129,7 @@ qt_add_resources(
     BASE "assets"
     FILES ${NIFO_IMG_FILES}
 )
+
 
 ############################################[FOR QT]##############################################
 

@@ -123,8 +123,9 @@ namespace nifo {
 	};
 
 	enum class access_policy : GLenum {
-		read = GL_READ_ONLY,
-		write = GL_WRITE_ONLY
+		read_only = GL_READ_ONLY,
+		write_only = GL_WRITE_ONLY,
+		read_write = GL_READ_WRITE
 	};
 
 	enum class data_type {

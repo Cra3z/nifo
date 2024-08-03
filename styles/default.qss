@@ -469,3 +469,7 @@ QPushButton[nifo-usage = "panel-title"][associated-panel-expanded = false] {
 QMenu[nifo-usage = "import-3Dmodel"] {
     qproperty-icon:  url(:/images/model-dark.svg);
 }
+
+QPushButton[nifo-usage = "color-selector"] {
+    margin: 10px 5px;
+}

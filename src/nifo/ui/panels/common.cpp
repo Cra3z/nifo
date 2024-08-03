@@ -9,12 +9,12 @@ namespace nifo::ui {
 		set_usage(push_button_, "panel-title");
 		set_qss_property(push_button_, "associated-panel-expanded", true);
 		layout()->addWidget(push_button_);
-		QObject::connect(this, &panel_base::rebind_requested, this, &panel_base::request_subwidgets_reload);
-		QObject::connect(push_button_, &QPushButton::clicked, this, &panel_base::toggle);
+		connect(this, &panel_base::rebind_requested, this, &panel_base::request_subwidgets_reload);
+		connect(push_button_, &QPushButton::clicked, this, &panel_base::toggle);
 	}
 
 	auto panel_base::request_subwidgets_reload(void* component, entt::type_info component_type) -> void {
-		assert(type_ == component_type);
+		nifo_expect(type_ == component_type);
 		component_ = component;
 		emit subwidgets_reload_requested();
 	}
@@ -36,8 +36,8 @@ namespace nifo::ui {
 		else expand();
 	}
 
-	auto panel_base::propagate_new_value_inputed() -> void {
+	auto panel_base::propagate_new_value_inputed(next_to_do next_to_do) -> void {
 		on_new_value_inputed();
-		emit new_value_inputed();
+		emit new_value_inputed(next_to_do);
 	}
 }

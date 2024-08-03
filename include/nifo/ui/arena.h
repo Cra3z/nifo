@@ -1,9 +1,11 @@
 #pragma once
 #include <QOpenGLWidget>
 #include <QOpenGLFunctions_4_5_Compatibility>
-#include <nifo/core/ogl/camera.h>
-#include <nifo/core/ogl/frame_buffer.h>
-#include <nifo/core/ogl/model.h>
+#include "../core/ogl/camera.h"
+#include "../core/ogl/frame_buffer.h"
+#include "../core/ogl/model.h"
+#include "../core/ecs/components/light.h"
+#include "../core/ogl/glsl_structs.h"
 
 namespace nifo::ui {
 
@@ -104,6 +106,7 @@ namespace nifo::ui {
 		auto select_object_(entt::entity id) ->void;
 
 		auto delete_object_(entt::entity id) ->void;
+
 	private:
 		std::reference_wrapper<hierarchy> hierarchy_;
 		std::unique_ptr<impl> pimpl;

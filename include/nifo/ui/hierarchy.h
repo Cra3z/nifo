@@ -4,7 +4,7 @@
 #include <QFileDialog>
 #include <QTreeView>
 #include <QStandardItemModel>
-#include <nifo/core/scene.h>
+#include "../core/scene.h"
 #include "widgets/import_3dmodel_dialog.h"
 
 namespace nifo::ui {
@@ -27,25 +27,33 @@ namespace nifo::ui {
 	public slots:
     	auto import_3Dmodel_to_current_scene() ->void;
 
-    	auto import_3Dmodel_to_current_node() ->void;
+    	auto import_3Dmodel_to_current_object() ->void;
+
+		auto add_light_to_current_scene(int category) ->void;
+
+    	auto add_light_to_current_object(int category) ->void;
 
     	auto delete_current_node() ->void;
 
     	auto select(node& current) ->void;
+
+    	auto refrush_current() ->void;
 	signals:
 
     	auto current_changed(node&) ->void;
 
     	auto no_selected() ->void;
 
-    	auto node_importing_started(QString filename) ->void;
+    	auto model_importing_started(QString filename) ->void;
 
-    	auto new_node_created(node& new_node) ->void;
+    	auto model_importing_done(node& new_node) ->void;
 	private:
 
 		auto build_tree_model_(const node::child_node_array& nodes) -> QStandardItemModel*;
 
 		auto do_build_tree_model_(const node::child_node_array& nodes, QStandardItem* parent) ->void;
+
+		auto add_light_impl(int category, node& parent) -> node*;
 
     private:
     	std::reference_wrapper<scene> scene_;

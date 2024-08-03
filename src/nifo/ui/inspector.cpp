@@ -1,5 +1,11 @@
+#include <nifo/core/ecs/components/light.h>
 #include <nifo/ui/inspector.h>
 #include <nifo/ui/hierarchy.h>
+#include <nifo/ui/panels/name_panel.h>
+#include <nifo/ui/panels/transform_panel.h>
+#include <nifo/ui/panels/parallel_light_panel.h>
+#include <nifo/ui/panels/point_light_panel.h>
+#include <nifo/ui/panels/spot_light_panel.h>
 
 namespace nifo::ui {
 
@@ -10,7 +16,10 @@ namespace nifo::ui {
 		spacer_(new QSpacerItem(40, 0, QSizePolicy::Policy::Minimum, QSizePolicy::Policy::Expanding)),
 		ctors_{
 			{entt::type_id<components::transform>(), +[](QWidget* parent_) ->panel_base* {return new transform_panel{parent_};}},
-			{entt::type_id<components::name>(), +[](QWidget* parent_) ->panel_base* {return new name_panel{parent_};}}
+			{entt::type_id<components::name>(), +[](QWidget* parent_) ->panel_base* {return new name_panel{parent_};}},
+			{entt::type_id<components::parallel_light>(), +[](QWidget* parent_) ->panel_base* {return new parallel_light_panel{parent_};}},
+			{entt::type_id<components::point_light>(), +[](QWidget* parent_) ->panel_base* {return new point_light_panel{parent_};}},
+			{entt::type_id<components::spot_light>(), +[](QWidget* parent_) ->panel_base* {return new spot_light_panel{parent_};}},
 		}
 	{
 		assert(hierarchy_.associated_inspector_ == nullptr); // precondition
@@ -26,12 +35,14 @@ namespace nifo::ui {
 	}
 
 	auto inspector::bind(node& node_) ->void {
-		std::vector<entt::type_info> needed_ = node_.components_type_info();
-		std::erase_if(needed_, [this](const entt::type_info& type) noexcept {
-			return not ctors_.contains(type);
+		auto needed_ = node_.components_type_info();
+		std::erase_if(needed_, [this] (const entt::type_info& type_info) {
+			return not ctors_.contains(type_info);
 		});
 		std::vector<entt::type_info> not_needed_;
-		std::ranges::set_difference(comp_panels_ | std::views::keys, needed_, std::back_inserter(not_needed_));
+		for (auto comps_ = comp_panels_ | std::views::keys; const auto& comp_ : comps_) {
+			if (std::ranges::find(needed_, comp_) == needed_.end()) not_needed_.push_back(comp_);
+		}
 		for (const auto& type_ : needed_) {
 			(*this)[type_].rebind_node(node_);
 			comp_panels_[type_]->show();

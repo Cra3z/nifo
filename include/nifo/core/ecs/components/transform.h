@@ -19,6 +19,7 @@ namespace nifo::components {
 	struct cached_transform_info {
 		bool       valid_ = false;
 		glm::mat4  model_matrix_{1.f};
+		glm::mat4  rotation_matrix_{1.f};
 		glm::vec3  global_position_{0.f};
 	};
 
@@ -30,10 +31,30 @@ namespace nifo::components {
 		auto local_to_world() noexcept ->glm::mat4;
 
 		[[nodiscard]]
-		auto world_to_local() noexcept ->glm::mat4;
+		auto world_to_local() noexcept ->glm::mat4 {
+			return glm::inverse(local_to_world());
+		}
 
 		[[nodiscard]]
 		auto global_position() noexcept ->glm::vec3;
+
+		[[nodiscard]]
+		auto front() noexcept ->glm::vec3 {
+			update_cached_info_if_invalid();
+			return cached_.rotation_matrix_ * glm::vec4{0.f, 0.f, 1.f, 1.f};
+		}
+
+		[[nodiscard]]
+		auto right() noexcept ->glm::vec3 {
+			update_cached_info_if_invalid();
+			return cached_.rotation_matrix_ * glm::vec4{1.f, 0.f, 0.f, 1.f};
+		}
+
+		[[nodiscard]]
+		auto up() noexcept ->glm::vec3 {
+			update_cached_info_if_invalid();
+			return cached_.rotation_matrix_ * glm::vec4{0.f, 1.f, 0.f, 1.f};
+		}
 
 		auto translate(glm::vec3 translation, space relative_to = space::local) noexcept ->void;
 
@@ -52,10 +73,6 @@ namespace nifo::components {
 		glm::vec3 local_position{0.f};
 		glm::vec3 local_rotation{0.f};
 		glm::vec3 local_scale{1.f};
-
-		glm::vec3 front{0.f, 0.f, 1.f};
-		glm::vec3 right{1.f, 0.f, 0.f};
-		glm::vec3    up{0.f, 1.f, 0.f};
 	};
 
 	static_assert(std::is_aggregate_v<transform>);

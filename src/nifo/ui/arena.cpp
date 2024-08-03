@@ -4,6 +4,7 @@
 #include <nifo/core/ogl/frame_buffer.h>
 #include <nifo/core/utils/loop.h>
 #include <nifo/ui/hierarchy.h>
+#include <nifo/core/ogl/glsl_structs.h>
 
 namespace nifo::ui {
 
@@ -56,6 +57,10 @@ namespace nifo::ui {
 		debug_view_mode                                     debug_view_mode;
 		bool                                                update_gbuffer = true;
 		QOpenGLFunctions_4_5_Compatibility                  gl_function_caller;
+		shader_storage_buffer                               parallel_light_ssbo;
+		shader_storage_buffer                               point_light_ssbo;
+		shader_storage_buffer                               spot_light_ssbo;
+		uniform_buffer                                      camera_uniforms;
 
 		auto load_default_assets() ->void {
 			materials.try_emplace("#grid", material{{.shader = shader_program{
@@ -84,15 +89,16 @@ namespace nifo::ui {
 		hierarchy_(hierarchy_),
 		pimpl(std::make_unique<impl>(*this))
 	{
+		nifo_expect(hierarchy_.associated_arena_ == nullptr); // precondition
+
 		setMouseTracking(true);
-		addAction("delete selected node", QKeySequence::Delete, &hierarchy_, &hierarchy::delete_current_node);
+		addAction("delete selected object", QKeySequence::Delete, &hierarchy_, &hierarchy::delete_current_node);
 		setContextMenuPolicy(Qt::CustomContextMenu);
 		auto menu = new QMenu{};
-		menu->addAction(QIcon{":/images/delete-dark.svg"}, "删除节点", &hierarchy_, &hierarchy::delete_current_node);
+		menu->addAction(QIcon{":/images/delete-dark.svg"}, "删除对象", &hierarchy_, &hierarchy::delete_current_node);
 		connect(this, &QWidget::customContextMenuRequested, menu, [this, menu] (const QPoint& pos) {
 			menu->popup(mapToGlobal(pos));
 		});
-		nifo_expect(hierarchy_.associated_arena_ == nullptr); // precondition
 		hierarchy_.associated_arena_ = this;
 		detail::caller = &(pimpl->gl_function_caller);
 	}
@@ -116,6 +122,10 @@ namespace nifo::ui {
 		pimpl->gbuffer = std::make_unique<frame_buffer>(glm::ivec2{fbo_width, fbo_height}, std::move(color_buffers), use_depth_stencil_common_attachment, std::move(depth_and_stencil));
 		pimpl->gbuffer->enable(capability::depth_test).enable_draw_into({GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2});
 		pimpl->postprocessing = std::make_unique<postprocessing_region>(pimpl->materials.at("#merge"));
+		pimpl->parallel_light_ssbo = create_shader_storage_buffer();
+		pimpl->point_light_ssbo = create_shader_storage_buffer();
+		pimpl->spot_light_ssbo = create_shader_storage_buffer();
+		pimpl->camera_uniforms = create_uniform_buffer(sizeof(glsl::camera_uniforms), buffer_usage::dynamic_draw);
 		scene& scene_ = hierarchy_.get().scene_;
 		scene_.editor_camera.set_aspect_ratio(float(fbo_width) / float(fbo_height));
 		if (scene_.grid == nullptr) scene_.grid = std::make_unique<builtin::grid>(pimpl->materials.at("#grid"), 5.f);
@@ -129,6 +139,10 @@ namespace nifo::ui {
 			auto default_frame_buffer_ = default_frame_buffer();
 			default_frame_buffer_.clear_color().clear_depth();
 			default_frame_buffer_.transfer_to(*pimpl->gbuffer);
+			pimpl->parallel_light_ssbo.bind_point(0);
+			pimpl->point_light_ssbo.bind_point(1);
+			pimpl->spot_light_ssbo.bind_point(2);
+			pimpl->camera_uniforms.bind_point(0);
 			pimpl->gbuffer->
 				clear_color(glm::vec4{glm::vec3{0.24}, 1.f}, 0).
 				clear_color(glm::vec4{glm::vec3{0.24}, 0.f}, 1).
@@ -137,6 +151,7 @@ namespace nifo::ui {
 				clear_stencil();
 
 			nifo_gl_invoke(glViewport, 0, 0, pimpl->gbuffer->shape().x, pimpl->gbuffer->shape().y);
+
 			draw_grid();
 			draw_hierarchy();
 			draw_outlines();
@@ -157,9 +172,44 @@ namespace nifo::ui {
 
 	auto arena::draw_hierarchy() -> void {
 		scene& scene_ = hierarchy_.get().scene_;
-		const auto view_projection_matrix = scene_.editor_camera.view_projection_matrix();
-		const auto eye = scene_.editor_camera.position();
 		if (scene_.root == nullptr) return;
+		{
+			auto mmap_handle_of_camera_uniforms = pimpl->camera_uniforms.mmap();
+			auto camera_uniforms = static_cast<glsl::camera_uniforms*>(mmap_handle_of_camera_uniforms.get());
+			camera_uniforms->view_projection_matrix = scene_.editor_camera.view_projection_matrix();
+			camera_uniforms->eye = scene_.editor_camera.position();
+			{
+				std::vector<glsl::parallel_light> parallel_lights;
+				for (const auto& [id, comp] : scene_.registry.view<components::parallel_light>().each()) {
+					parallel_lights.push_back(glsl::parallel_light{
+						.direction = scene_.registry.get<components::transform>(id).front(),
+						.light_info = comp
+					});
+				}
+				pimpl->parallel_light_ssbo.from_range(parallel_lights, buffer_usage::static_draw);
+			}
+			{
+				std::vector<glsl::point_light> point_lights;
+				for (const auto& [id, comp] : scene_.registry.view<components::point_light>().each()) {
+					point_lights.push_back(glsl::point_light{
+						.position = scene_.registry.get<components::transform>(id).global_position(),
+						.light_info = comp
+					});
+				}
+				pimpl->point_light_ssbo.from_range(point_lights, buffer_usage::static_draw);
+			}
+			{
+				std::vector<glsl::spot_light> spot_lights;
+				for (const auto& [id, comp] : scene_.registry.view<components::spot_light>().each()) {
+					spot_lights.push_back(glsl::spot_light{
+						.position = scene_.registry.get<components::transform>(id).global_position(),
+						.direction = scene_.registry.get<components::transform>(id).front(),
+						.light_info = comp
+					});
+				}
+				pimpl->spot_light_ssbo.from_range(spot_lights, buffer_usage::static_draw);
+			}
+		}
 		std::deque<node*> nodes{scene_.root.get()};
 		std::ranges::transform(scene_.root->children(), std::back_inserter(nodes), &std::unique_ptr<node>::get);
 		while (not nodes.empty()) {
@@ -168,16 +218,12 @@ namespace nifo::ui {
 			if (not node_->has_all_components_of<components::model>() or node_->has_any_component_of<components::hidden>()) continue;
 			std::ranges::transform(node_->children(), std::back_inserter(nodes), &std::unique_ptr<node>::get);
 			auto& model = node_->get_components<components::model>();
+			node_->transform().cached_.valid_ = false;
+			auto model_matrix = node_->transform().local_to_world();
 			for (const auto& mesh_ : model.value->meshes()) {
 				mesh_.draw([&](const material& mat) {
-					node_->transform().cached_.valid_ = false;
-					auto model_matrix = node_->transform().local_to_world();
 					mat.pass_attributes_to_shader(pimpl->texture2d_manager);
-					// optional uniform variables
-					void(mat.shader.try_set_uniform("eye", eye));
-
-					// required uniform variables
-					mat.shader.set_uniform("MVP", view_projection_matrix * model_matrix);
+					mat.shader.set_uniform("model_matrix", model_matrix);
 					mat.shader.set_uniform("object_id", to_underlying(node_->id()));
 					mat.shader.set_uniform("normal_matrix", glm::inverse(glm::transpose(glm::mat3{model_matrix})));
 					return primitive::triangles;
@@ -187,9 +233,10 @@ namespace nifo::ui {
 	}
 
 	auto arena::draw_outlines() -> void {
-		if (pimpl->selected != entt::null) {
+		if (const auto selected_id = pimpl->selected; selected_id != entt::null) {
 			scene& scene_ = hierarchy_.get().scene_.get();
-			node& selected = scene_.entities.at(pimpl->selected);
+			if (not scene_.registry.all_of<components::model>(selected_id)) return;
+			node& selected = scene_.entities.at(selected_id);
 			auto MVP = hierarchy_.get().scene_.get().editor_camera.view_projection_matrix() * selected.transform().local_to_world();
 			pimpl->gbuffer->enable(capability::stencil_test).enable(capability::color_blending).disable(capability::depth_test);
 			scope_exit _{[&] {
@@ -228,7 +275,6 @@ namespace nifo::ui {
 		auto pixel_pos = gbuffer_shape / 2.f;
 		pixel_pos.x -= float(arena_w) / 2.f;
 		pixel_pos.y -= float(arena_h) / 2.f;
-		// pimpl->gbuffer->blit_to(glm::ivec4{pixel_pos.x, pixel_pos.y, arena_w, arena_h}, default_frame_buffer_, {0, 0, arena_w, arena_h}, frame_attachment_mask::all);
 		nifo_gl_invoke(glViewport, 0, 0, arena_w, arena_h);
 		pimpl->postprocessing->draw([&] (const material& material) {
 			(*pimpl->gbuffer)[color_attachment_i].bind_unit(0);
@@ -373,4 +419,5 @@ namespace nifo::ui {
 	auto arena::delete_object_(entt::entity id) -> void {
 		if (pimpl->selected == id) pimpl->selected = entt::null;
 	}
+
 }

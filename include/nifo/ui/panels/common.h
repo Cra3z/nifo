@@ -10,6 +10,14 @@ namespace nifo::ui {
 	class panel_base : public QWidget {
 		friend class input_base;
 		Q_OBJECT
+
+	public:
+
+		enum class next_to_do {
+			repaint_scene,
+			refrush_view
+		};
+
 	public:
 		explicit panel_base(entt::type_info type, QWidget* parent = nullptr);
 
@@ -19,7 +27,7 @@ namespace nifo::ui {
 
 		template<nifo::component T>
 		auto rebind_comp_(T& component) ->void {
-			assert(entt::type_id<T>() == type_);
+			nifo_expect(entt::type_id<T>() == type_);
 			emit rebind_requested(static_cast<void*>(std::addressof(component)), entt::type_id<T>());
 		}
 
@@ -33,7 +41,7 @@ namespace nifo::ui {
 
 		auto toggle() ->void ;
 
-		auto propagate_new_value_inputed() ->void ;
+		auto propagate_new_value_inputed(next_to_do next_to_do = next_to_do::repaint_scene) ->void ;
 
 	private:
 
@@ -49,7 +57,7 @@ namespace nifo::ui {
 
 		auto subwidgets_reload_requested() ->void;
 
-		auto new_value_inputed() ->void;
+		auto new_value_inputed(next_to_do next_to_do) ->void;
 
 	protected:
 		void* component_ = nullptr;

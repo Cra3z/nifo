@@ -3,9 +3,9 @@
 #include <QStatusBar>
 #include <QSplitter>
 #include <QProgressBar>
-#include <nifo/ui/hierarchy.h>
-#include <nifo/ui/arena.h>
-#include <nifo/ui/inspector.h>
+#include "hierarchy.h"
+#include "arena.h"
+#include "inspector.h"
 
 namespace nifo::ui {
 	class main_window : public QMainWindow {

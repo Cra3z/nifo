@@ -7,6 +7,7 @@ uniform mat4 view_projection_matrix;
 out vs_out_blk {
     vec3 color;
 } vs_out;
+
 void main() {
     if (position.y == 1.) {
         vs_out.color = 0.32 * vec3(1.);

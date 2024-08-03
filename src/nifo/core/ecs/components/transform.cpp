@@ -8,10 +8,6 @@ namespace nifo::components {
 		return cached_.model_matrix_;
 	}
 
-	auto transform::world_to_local() noexcept -> glm::mat4 {
-		return glm::inverse(local_to_world());
-	}
-
 	auto transform::global_position() noexcept -> glm::vec3 {
 		update_cached_info_if_invalid();
 		return cached_.global_position_;
@@ -42,12 +38,16 @@ namespace nifo::components {
 			R = glm::rotate(glm::mat4{1.f}, glm::radians(local_rotation.x), glm::vec3{1.f, 0.f, 0.f}) * R;
 			R = glm::rotate(glm::mat4{1.f}, glm::radians(local_rotation.y), glm::vec3{0.f, 1.f, 0.f}) * R;
 			auto T = glm::translate(glm::mat4{1.f}, local_position);
-			auto parent_node = owner.first.get().entities.at(owner.second).get().parent();
+			auto parent = owner.first.get().entities.at(owner.second).get().parent();
+			cached_.rotation_matrix_ = R;
 			cached_.model_matrix_ = T * R * S;
 			cached_.global_position_ = local_position;
-			if (parent_node and not parent_node->is_root()) {
-				cached_.model_matrix_ = parent_node->transform().local_to_world() * cached_.model_matrix_;
-				cached_.global_position_ = parent_node->transform().local_to_world() * glm::vec4{cached_.global_position_, 1.f};
+			if (parent and not parent->is_root()) {
+				auto& parent_transform = parent->transform();
+				auto parent_local_to_world = parent_transform.local_to_world();
+				cached_.rotation_matrix_ = parent_transform.cached_.rotation_matrix_ * cached_.rotation_matrix_;
+				cached_.model_matrix_ = parent_local_to_world * cached_.model_matrix_;
+				cached_.global_position_ = parent_local_to_world * glm::vec4{cached_.global_position_, 1.f};
 			}
 			cached_.valid_ = true;
 		}

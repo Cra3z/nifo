@@ -16,7 +16,7 @@ namespace nifo::ui {
 			ui_->name, &QLineEdit::editingFinished,
 			[this] {
 				static_cast<components::name*>(component_)->value = ui_->name->text().toStdString();
-				this->propagate_new_value_inputed();
+				this->propagate_new_value_inputed(next_to_do::refrush_view);
 			}
 		);
     }
