@@ -24,6 +24,8 @@ Nifo仍处于开发中, 目前已实现的功能:
 
 ![nifo-demo2](screenshot/nifo-demo2.png)  
 
+![nifo-demo3](screenshot/nifo-demo3.png)  
+
 ---
 
 ## 构建 Nifo
