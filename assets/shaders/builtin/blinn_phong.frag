@@ -69,6 +69,14 @@ uniform uint object_id;
 uniform mat3 normal_matrix;
 uniform phong_material material;
 
+vec4 gamma_to_linear(vec4 color) {
+    return pow(color, vec4(2.2));
+}
+
+vec4 tone_mapping(vec4 color) {
+    return 1.019 * color / (color + 0.155);
+}
+
 float lambert(vec3 normal, vec3 light_diretion) {
     return max(dot(normalize(normal), normalize(-light_diretion)), 0);
 }
@@ -108,12 +116,16 @@ void main() {
     mat3 TBN = mat3(tangent, bitangent, normal);
     normal = TBN * (2. * texture(material.normals, gs_out.uv).rgb - 1.);
 
+    vec4 sampled_diffuse = gamma_to_linear(texture(material.diffuse, gs_out.uv));
+
+    vec4 sampled_specular = texture(material.specular, gs_out.uv);
+
     for (uint i = 0; i < parallel_lights.length(); ++i) {
-        vec4 ambient = material.ambient_color * texture(material.diffuse, gs_out.uv) * parallel_lights[i].color;
+        vec4 ambient = material.ambient_color * sampled_diffuse * parallel_lights[i].color;
 
-        vec4 diffuse = material.diffuse_color * texture(material.diffuse, gs_out.uv) * lambert(normal, parallel_lights[i].direction) * parallel_lights[i].diffuse * parallel_lights[i].color;
+        vec4 diffuse = material.diffuse_color * sampled_diffuse * lambert(normal, parallel_lights[i].direction) * parallel_lights[i].diffuse * parallel_lights[i].color;
 
-        vec4 specular = material.specular_intensity * material.specular_color * texture(material.specular, gs_out.uv) * blinn_spec(normal, parallel_lights[i].direction, eye, gs_out.position, material.shininess) * parallel_lights[i].specular * parallel_lights[i].color;
+        vec4 specular = material.specular_intensity * material.specular_color * sampled_specular * blinn_spec(normal, parallel_lights[i].direction, eye, gs_out.position, material.shininess) * parallel_lights[i].specular * parallel_lights[i].color;
 
         out_color += ambient + diffuse + specular;
     }
@@ -124,11 +136,11 @@ void main() {
         
         const float attenuation = point_lights[i].power > 0. ? get_attenuation(length(direction) / point_lights[i].power) : 0.;
 
-        vec4 ambient = material.ambient_color * texture(material.diffuse, gs_out.uv) * point_lights[i].color;
+        vec4 ambient = material.ambient_color * sampled_diffuse * point_lights[i].color;
 
-        vec4 diffuse = material.diffuse_color * texture(material.diffuse, gs_out.uv) * lambert(normal, direction) * point_lights[i].diffuse * point_lights[i].color;
+        vec4 diffuse = material.diffuse_color * sampled_diffuse * lambert(normal, direction) * point_lights[i].diffuse * point_lights[i].color;
 
-        vec4 specular = material.specular_intensity * material.specular_color * texture(material.specular, gs_out.uv) * blinn_spec(normal, direction, eye, gs_out.position, material.shininess) * point_lights[i].specular * point_lights[i].color;
+        vec4 specular = material.specular_intensity * material.specular_color * sampled_specular * blinn_spec(normal, direction, eye, gs_out.position, material.shininess) * point_lights[i].specular * point_lights[i].color;
 
         out_color += attenuation * (ambient + diffuse + specular);
     }
@@ -136,11 +148,11 @@ void main() {
     for (uint i = 0; i < spot_lights.length(); ++i) {
         const vec3 light_direction = gs_out.position - spot_lights[i].position;
 
-        vec4 ambient = material.ambient_color * texture(material.diffuse, gs_out.uv) * spot_lights[i].color;
+        vec4 ambient = material.ambient_color * sampled_diffuse * spot_lights[i].color;
 
-        vec4 diffuse = material.diffuse_color * texture(material.diffuse, gs_out.uv) * lambert(normal, light_direction) * spot_lights[i].diffuse * spot_lights[i].color;
+        vec4 diffuse = material.diffuse_color * sampled_diffuse * lambert(normal, light_direction) * spot_lights[i].diffuse * spot_lights[i].color;
 
-        vec4 specular = material.specular_intensity * material.specular_color * texture(material.specular, gs_out.uv) * blinn_spec(normal, light_direction, eye, gs_out.position, material.shininess) * spot_lights[i].specular * spot_lights[i].color;
+        vec4 specular = material.specular_intensity * material.specular_color * sampled_specular * blinn_spec(normal, light_direction, eye, gs_out.position, material.shininess) * spot_lights[i].specular * spot_lights[i].color;
 
         float cos_theta = dot(normalize(light_direction), normalize(spot_lights[i].direction));
 
@@ -152,6 +164,8 @@ void main() {
 
         out_color += intensity * (ambient + diffuse + specular);
     }
+
+    out_color = tone_mapping(out_color);
 
     top_object_id = object_id;
 }

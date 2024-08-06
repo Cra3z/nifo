@@ -6,8 +6,7 @@
 #include <nifo/ui/arena.h>
 #include <nifo/ui/inspector.h>
 #include <nifo/ui/for_qss.h>
-
-#include "nifo/core/ogl/glsl_structs.h"
+#include <nifo/core/ogl/glsl_structs.h>
 
 namespace nifo::ui {
 

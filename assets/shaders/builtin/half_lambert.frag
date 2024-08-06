@@ -63,17 +63,16 @@ uniform uint object_id;
 uniform mat3 normal_matrix;
 uniform lambert_material material;
 
+vec4 gamma_to_linear(vec4 color) {
+    return pow(color, vec4(2.2));
+}
+
+vec4 tone_mapping(vec4 color) {
+    return 1.019 * color / (color + 0.155);
+}
+
 float lambert(vec3 normal, vec3 light_diretion) {
     return (dot(normalize(normal), normalize(-light_diretion)) + 1.) / 2.;
-}
-
-vec4 process_point_light(in point_light light) {
-
-    return vec4(0);
-}
-
-vec4 process_spot_light(in spot_light light) {
-    return vec4(0);
 }
 
 float get_attenuation(float dist) {
@@ -103,8 +102,11 @@ void main() {
     mat3 TBN = mat3(tangent, bitangent, normal);
     normal = TBN * (2. * texture(material.normals, gs_out.uv).rgb - 1.);
 
+    vec4 sampled_diffuse = gamma_to_linear(texture(material.diffuse, gs_out.uv));
+
     for (uint i = 0; i < parallel_lights.length(); ++i) {
-        vec4 diffuse = material.diffuse_color * texture(material.diffuse, gs_out.uv) * lambert(normal, parallel_lights[i].direction) * parallel_lights[i].diffuse * parallel_lights[i].color;
+        vec4 diffuse = material.diffuse_color * sampled_diffuse * lambert(normal, parallel_lights[i].direction) * parallel_lights[i].diffuse * parallel_lights[i].color;
+
         out_color += diffuse;
     }
 
@@ -114,7 +116,7 @@ void main() {
         const vec3 direction = gs_out.position - point_lights[i].position;
         const float attenuation = point_lights[i].power > 0. ? get_attenuation(length(direction) / point_lights[i].power) : 0.;
 
-        vec4 diffuse = material.diffuse_color * texture(material.diffuse, gs_out.uv) * lambert(normal, direction) * point_lights[i].diffuse * point_lights[i].color;
+        vec4 diffuse = material.diffuse_color * sampled_diffuse * lambert(normal, direction) * point_lights[i].diffuse * point_lights[i].color;
 
         out_color += attenuation * diffuse;
     }
@@ -122,7 +124,7 @@ void main() {
     for (uint i = 0; i < spot_lights.length(); ++i) {
         const vec3 light_direction = gs_out.position - spot_lights[i].position;
 
-        vec4 diffuse = material.diffuse_color * texture(material.diffuse, gs_out.uv) * lambert(normal, light_direction) * spot_lights[i].diffuse * spot_lights[i].color;
+        vec4 diffuse = material.diffuse_color * sampled_diffuse * lambert(normal, light_direction) * spot_lights[i].diffuse * spot_lights[i].color;
 
         float cos_theta = dot(normalize(light_direction), normalize(spot_lights[i].direction));
 
@@ -134,6 +136,8 @@ void main() {
 
         out_color += intensity * diffuse;
     }
+
+    out_color = tone_mapping(out_color);
 
     top_object_id = object_id;
 }
