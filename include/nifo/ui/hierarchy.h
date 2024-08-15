@@ -60,7 +60,7 @@ namespace nifo::ui {
 		QMenu* menu_;
 		QStandardItemModel* model_;
 		QTreeView* tree_view_;
-    	std::unique_ptr<import_3dmodel_dialog> model_import_dialog_;
+    	import_3dmodel_dialog* model_import_dialog_;
     	inspector* associated_inspector_ = nullptr;
     	arena* associated_arena_ = nullptr;
     };

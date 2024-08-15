@@ -16,7 +16,7 @@ namespace nifo::ui {
 		menu_(new QMenu{this}),
 		model_(build_tree_model_(scene.root->children())),
 		tree_view_(new QTreeView{this}),
-		model_import_dialog_(std::make_unique<import_3dmodel_dialog>(nullptr, QStringLiteral("导入3D模型"), QStringLiteral("3D模型文件(*.obj *.fbx)")))
+		model_import_dialog_(new import_3dmodel_dialog(this, QStringLiteral("导入3D模型"), QStringLiteral("3D模型文件(*.obj *.fbx)")))
 	{
     	tree_view_->setModel(model_);
     	tree_view_->setEditTriggers(QAbstractItemView::NoEditTriggers);
