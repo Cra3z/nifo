@@ -103,15 +103,14 @@ namespace nifo {
 		[[nodiscard]]
 		auto get_id() const noexcept ->uint_t;
 
+		/**
+		 * \brief 获取shader uniform变量的位置
+		 * \param name shader uniform变量的名称, 需保证\code name.data()\endcode 空终止且\code strlen(name.data()) == name.size() \endcode
+		 * \return shader uniform变量的位置
+		 */
 		[[nodiscard]]
-		auto get_attribute_location(std::string_view name) const ->nifo::int_t;
+		auto get_uniform_location(std::string_view name) const ->int_t;
 
-		[[nodiscard]]
-		auto get_uniform_location(std::string_view name) const ->nifo::int_t;
-
-		[[nodiscard]]
-		auto get_uniform_block_location(std::string_view name) const ->nifo::uint_t;
-		
 		template<typename V> requires meta::type_list<float_t, double_t, int_t, uint_t, bool>::containes<V>
 		auto try_set_uniform(std::string_view name, const V& v) const ->bool {
 			auto loc = get_uniform_location(name);
@@ -191,8 +190,6 @@ namespace nifo {
 		auto set_uniform(std::string_view name, const T& value) const ->void requires requires {std::declval<shader_program>().try_set_uniform(name, value);} {
 			if (not this->try_set_uniform(name, value)) throw runtime_error{fmt::format("the uniform `{}` starts with the reserved prefix \"gl_\" or is not in the shader program", name)};
 		}
-
-		auto bind_uniform_block(std::string_view name, uint_t binding_point) const ->void ;
 
 		friend auto operator== (const shader_program& lhs, const shader_program& rhs) noexcept ->bool {
 			return lhs.vert == rhs.vert && lhs.geom == rhs.geom && lhs.frag == rhs.frag;

@@ -48,7 +48,7 @@ namespace nifo {
 	node::node(std::string_view name, class scene& scene_) : node(scene_.registry.create()) {
 		this->scene_ = &scene_;
 		scene_.entities.try_emplace(id_, std::ref(*this));
-		add_component<components::name>(scene_.name_generator_.get(name.data()));
+		add_component<components::name>(scene_.name_generator_.get(std::string(name)));
 		add_component<components::transform>(components::transform{.owner = std::pair{std::ref(scene_), id_}});
 	}
 

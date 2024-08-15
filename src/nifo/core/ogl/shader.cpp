@@ -169,11 +169,6 @@ namespace nifo {
 		return program_id;
 	}
 
-	auto shader_program::bind_uniform_block(std::string_view name, uint_t binding_point) const -> void {
-		auto location = get_uniform_block_location(name);
-		nifo_gl_invoke(glUniformBlockBinding, program_id, location, binding_point);
-	}
-
 	auto shader_program::use() const -> void {
 		nifo_gl_invoke(glUseProgram, program_id);
 	}
@@ -205,12 +200,7 @@ namespace nifo {
 		}
 	}
 
-	auto shader_program::get_attribute_location(std::string_view name) const -> nifo::int_t {
-		if (auto loc = nifo_gl_invoke(glGetAttribLocation, program_id, name.data()); loc == -1) throw runtime_error{fmt::format("the attribute `{}` starts with the reserved prefix \"gl_\" or is not in the shader program", name)};
-		else return loc;
-	}
-	
-	auto shader_program::get_uniform_location(std::string_view name) const -> nifo::int_t {
+	auto shader_program::get_uniform_location(std::string_view name) const -> int_t {
 		if (!shader_program_uniform_location_cached.contains(program_id)) {
 			shader_program_uniform_location_cached[program_id] = {};
 		}
@@ -224,19 +214,4 @@ namespace nifo {
 		return loc;
 	}
 
-	auto shader_program::get_uniform_block_location(std::string_view name) const ->nifo::uint_t {
-		if (!shader_program_uniform_block_location_cached.contains(program_id)) {
-			shader_program_uniform_block_location_cached[program_id] = {};
-		}
-
-		if (shader_program_uniform_block_location_cached[program_id].contains(name)) {
-			return shader_program_uniform_block_location_cached[program_id][std::string{name}];
-		}
-
-		if (auto loc = nifo_gl_invoke(glGetUniformBlockIndex, program_id, name.data()); loc == GL_INVALID_INDEX) throw runtime_error{fmt::format("the parameter `{}` does not identify an active uniform block", name)};
-		else {
-			shader_program_uniform_block_location_cached[program_id][std::string{name}] = loc;
-			return loc;
-		}
-	}
 }
