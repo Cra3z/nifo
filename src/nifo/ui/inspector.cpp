@@ -1,4 +1,5 @@
 #include <nifo/core/ecs/components/light.h>
+#include <nifo/ui/for_qss.h>
 #include <nifo/ui/inspector.h>
 #include <nifo/ui/hierarchy.h>
 #include <nifo/ui/panels/name_panel.h>
@@ -25,6 +26,7 @@ namespace nifo::ui {
 		assert(hierarchy_.associated_inspector_ == nullptr); // precondition
 		hierarchy_.associated_inspector_ = this;
 		auto layout_widget = new QWidget;
+		set_usage(layout_widget, "panel-container");
 		vbox_ = new QVBoxLayout{layout_widget};
 		scroll_area_->setWidget(layout_widget);
 		scroll_area_->setWidgetResizable(true);
